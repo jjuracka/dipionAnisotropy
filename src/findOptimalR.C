@@ -62,10 +62,10 @@ void findOptimalR() {
           double mcValue = hMcProj->GetBinContent(bin);
           double mcError = hMcProj->GetBinError(bin);
           // calculate chi2
-          chi2 += std::pow(mcValue - dataValue, 2) / (std::pow(dataError, 2)); // is this the proper factor for the denominator?
+          chi2 += std::pow(mcValue - dataValue, 2) / (std::pow(dataError, 2));
           ndf++;
         }
-        chi2 /= ndf; // should this be (ndf - 1)?
+        chi2 /= ndf;
         chi2Values.push_back(chi2);
         // std::cout << "R = " << rValues[j] << ", chi2/ndf = " << chi2 << std::endl;
       }
@@ -83,7 +83,6 @@ void findOptimalR() {
       
       TCanvas *c = new TCanvas(Form("c_bin%d", i), "c", 800, 500);
       c->SetLogy();
-      // c->SetGrid();
       gChi2->Draw("AP");
       gChi2->SetTitle(";#it{R} (fm);#it{#chi}^{2}/ndf");
       gChi2->SetMarkerStyle(20);
@@ -92,33 +91,10 @@ void findOptimalR() {
       gChi2->SetMinimum(fFit->GetMinimum()-0.5);
       TLine *line = new TLine(optimalR, fFit->GetMinimum() - 10, optimalR, fFit->GetMinimum() + 10);
       line->SetLineColorAlpha(tabGreen, 0.7);
-      // line->SetLineWidth(2);
-      // line->Draw("same");
       fFit->SetLineColorAlpha(tabOrange, 1.0);
       fFit->SetLineWidth(2);
       fFit->Draw("same");
       gChi2->Draw("P same");
-      // I want to include a zoomed-in inset to show the minimum more clearly
-      // TPad *insetPad = new TPad("insetPad", "insetPad", 0.15, 0.15, 0.55, 0.55);
-      // insetPad->SetFillStyle(0);
-      // insetPad->SetBorderSize(0);
-      // insetPad->Draw();
-      // insetPad->cd();
-      // // clone the graph and fit to draw in the inset
-      // TGraph *gChi2Inset = dynamic_cast<TGraph*>(gChi2->Clone("gChi2Inset"));
-      // gChi2Inset->Draw("AP");
-      // gChi2Inset->GetXaxis()->SetTitle("");
-      // gChi2Inset->SetMarkerStyle(20);
-      // gChi2Inset->SetMarkerSize(1);
-      // gChi2Inset->SetMarkerColor(tabBlue);
-      // fFit->Draw("same");
-      // // line->Draw("same");
-      // gChi2Inset->GetXaxis()->SetRangeUser(optimalR - 0.005, optimalR + 0.005);
-      // gChi2Inset->GetYaxis()->SetRangeUser(fFit->GetMinimum() - 0.3, fFit->GetMinimum() + 1.3);
-      // gChi2Inset->GetXaxis()->SetTitleSize(0.08);
-      // gChi2Inset->GetXaxis()->SetLabelSize(0.08);
-      // gChi2Inset->GetYaxis()->SetTitleSize(0.08);
-      // gChi2Inset->GetYaxis()->SetLabelSize(0.08);
       // draw a rectangle around the minimum in the inset to indicate the +-1 sigma range
       double minimumY = fFit->GetMinimum();
       double minimumX = optimalR;
@@ -149,7 +125,6 @@ void findOptimalR() {
     }
     fOptimalR->cd(neutronClass);
     hOptimalR->Write("hOptimalR");
-    // c->SaveAs("chi2_vs_R.pdf");
     
     // now we fit the optimal R values as a function of delta phi with the fourier decomp function
     TF1 *fFourier = new TF1("fFourier", fourierDecomp, -TMath::Pi(), TMath::Pi(), 5);
