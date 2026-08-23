@@ -37,6 +37,11 @@ void findOptimalR() {
     std::vector<TH2*> mcHistos;
     for (const auto& r : rValues) {
       TH2* hMc = dynamic_cast<TH2*>(fMC->Get(Form("hRecoPtWeighted_R%.2f", r)));
+      // check for match in binning between data and MC histograms
+      if (hMc->GetNbinsX() != hData->GetNbinsX() || hMc->GetNbinsY() != hData->GetNbinsY()) {
+        std::cerr << "ERROR: Binning mismatch between data and MC histograms for R = " << r << std::endl;
+        continue;
+      }
       mcHistos.push_back(hMc);
     }
     // "output" histogram to store the optimal R values for each delta phi bin

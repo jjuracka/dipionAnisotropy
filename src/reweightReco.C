@@ -64,7 +64,7 @@ void reweightReco() {
     // define a new column in the DataFrame that contains the weights based on genPt and genDeltaPhi
     auto dfWithWeight = dfBase.Define(weightColumnName, [weightHist](double genPt, double genDeltaPhi) { return weightHist->GetBinContent(weightHist->FindBin(genPt, genDeltaPhi)); }, {"genPt", "genDeltaPhi"});
     // create a weighted histogram of recoPt using the weights
-    auto hRecoPt = dfWithWeight.Histo2D<double, double>({Form("hRecoPtWeighted_R%.2f", rValues[i]), Form("hRecoPtWeighted for #it{R} = %.2f; #it{p}_{T} (GeV/#it{c}); #Delta#phi (rad); weighted counts", rValues[i]), 100, 0, 0.1, 12, -TMath::Pi(), TMath::Pi()}, "recoPt" , "recoDeltaPhi", weightColumnName);
+    auto hRecoPt = dfWithWeight.Histo2D<double, double>({Form("hRecoPtWeighted_R%.2f", rValues[i]), Form("hRecoPtWeighted for #it{R} = %.2f; #it{p}_{T} (GeV/#it{c}); #Delta#phi (rad); weighted counts", rValues[i]), 100, 0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "recoPt" , "recoDeltaPhi", weightColumnName);
     hRecoPtWeighted.push_back(hRecoPt);
   }
 
