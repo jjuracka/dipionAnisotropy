@@ -19,7 +19,7 @@ void reconcileHistos(TH1D *hGen, TH1D *hPassed) {
   }
 }
 
-// TEfficiency cannot handle weighted histograms, so we need to build the efficiency histogram manually
+// TEfficiency cannot handle weighted histograms, so we need to build the AxE histogram manually
 TH1D* buildEfficiencyHistogram(TH1D *hPassed, TH1D *hTotal, const TString &name) {
   TH1D *hEff = (TH1D*)hPassed->Clone(name);
   hEff->Reset();
@@ -27,17 +27,17 @@ TH1D* buildEfficiencyHistogram(TH1D *hPassed, TH1D *hTotal, const TString &name)
   for (int bin = 1; bin <= hEff->GetNbinsX(); ++bin) {
     const double total = hTotal->GetBinContent(bin);
     const double passed = hPassed->GetBinContent(bin);
-    const double totalErr = hTotal->GetBinError(bin);
-    const double passedErr = hPassed->GetBinError(bin);
+    const double sigmaTotal = hTotal->GetBinError(bin);
+    const double sigmaPassed = hPassed->GetBinError(bin);
 
     if (total > 0) {
-      const double efficiency = passed / total;
-      const double efficiencyErr = TMath::Sqrt(
-        TMath::Power(passedErr / total, 2) +
-        TMath::Power(passed * totalErr / (total * total), 2)
+      const double AxE = passed / total;
+      const double sigmaAxE = TMath::Sqrt(
+        TMath::Power(sigmaPassed / total, 2) +
+        TMath::Power(passed * sigmaTotal / (total * total), 2)
       );
-      hEff->SetBinContent(bin, efficiency);
-      hEff->SetBinError(bin, efficiencyErr);
+      hEff->SetBinContent(bin, AxE);
+      hEff->SetBinError(bin, sigmaAxE);
     } else {
       hEff->SetBinContent(bin, 0);
       hEff->SetBinError(bin, 0);
@@ -52,23 +52,23 @@ TH1D* correctSpectrum(TH1D *hist, TH1D *eff) {
   hDiv->Reset();
 
   for (int bin = 1; bin <= hDiv->GetNbinsX(); ++bin) {
-    // get the efficiency for the current bin
-    double efficiency = eff->GetBinContent(bin);
-    if (efficiency > 0) {
+    // get the AxE for the current bin
+    double AxE = eff->GetBinContent(bin);
+    if (AxE > 0) {
       // get the bin content and error
       double content = hist->GetBinContent(bin);
-      double error = hist->GetBinError(bin);
+      double sigmaContent = hist->GetBinError(bin);
       // calculate the corrected content and error
-      double newContent = content / efficiency;
-      double effError = eff->GetBinError(bin);
-      double newError = TMath::Sqrt(
-        TMath::Power(error / efficiency, 2) +
-        TMath::Power(content * effError / (efficiency * efficiency), 2)
+      double corrected = content / AxE;
+      double sigmaAxE = eff->GetBinError(bin);
+      double sigmaCorrected = TMath::Sqrt(
+        TMath::Power(sigmaContent / AxE, 2) +
+        TMath::Power(content * sigmaAxE / (AxE * AxE), 2)
       );
       // set the corrected content and error
-      hDiv->SetBinContent(bin, newContent);
-      hDiv->SetBinError(bin, newError);
-    } else { // if efficiency is zero, set content and error to zero
+      hDiv->SetBinContent(bin, corrected);
+      hDiv->SetBinError(bin, sigmaCorrected);
+    } else { // if AxE is zero, set content and error to zero
       hDiv->SetBinContent(bin, 0);
       hDiv->SetBinError(bin, 0);
     }
@@ -102,7 +102,7 @@ void correctAxE() {
         gSystem->Exec(Form("mkdir -p output/fitResults/%s/pTbin_%d/phiBin_%d", neutronClasses[i].Data(), j, k));
         TDirectory *dir = fOut->mkdir(Form("%s/pTbin_%d/phibin_%d", neutronClasses[i].Data(), j, k));
         dir->cd();
-        // make efficiency
+        // make AxE
         TH1D *hGenMc_proj = hGenMc->ProjectionX("hGenMc_proj", k, k);
         TH1D *hRecMc_proj = hRecMc->ProjectionX("hRecMc_proj", k, k);
         reconcileHistos(hGenMc_proj, hRecMc_proj);
