@@ -284,7 +284,7 @@ double x3(double *x, double *par) {
   double m_omega = par[4];
   double gamma0_omega = par[5];
   double phi_omega = par[6];
-  double d = std::sqrt(m_pipi * m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega));
+  double d = std::sqrt(m_pipi * m_omega * Gamma_omega_pion(m_pipi, m_omega, gamma0_omega));
   double e = m_pipi * m_pipi - m_omega * m_omega;
   double f = m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega);
   return C_omega * d * e * std::cos(phi_omega) / (e * e + f * f);
@@ -296,7 +296,7 @@ double x4(double *x, double *par) {
   double m_omega = par[4];
   double gamma0_omega = par[5];
   double phi_omega = par[6];
-  double d = std::sqrt(m_pipi * m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega));
+  double d = std::sqrt(m_pipi * m_omega * Gamma_omega_pion(m_pipi, m_omega, gamma0_omega));
   double e = m_pipi * m_pipi - m_omega * m_omega;
   double f = m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega);
   return C_omega * d * f * std::sin(phi_omega) / (e * e + f * f);
@@ -319,7 +319,7 @@ double y2(double *x, double *par) {
   double m_omega = par[4];
   double gamma0_omega = par[5];
   double phi_omega = par[6];
-  double d = std::sqrt(m_pipi * m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega));
+  double d = std::sqrt(m_pipi * m_omega * Gamma_omega_pion(m_pipi, m_omega, gamma0_omega));
   double e = m_pipi * m_pipi - m_omega * m_omega;
   double f = m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega);
   return C_omega * d * e * std::sin(phi_omega) / (e * e + f * f);
@@ -331,7 +331,7 @@ double y3(double *x, double *par) {
   double m_omega = par[4];
   double gamma0_omega = par[5];
   double phi_omega = par[6];
-  double d = std::sqrt(m_pipi * m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega));
+  double d = std::sqrt(m_pipi * m_omega * Gamma_omega_pion(m_pipi, m_omega, gamma0_omega));
   double e = m_pipi * m_pipi - m_omega * m_omega;
   double f = m_omega * Gamma_omega(m_pipi, m_omega, gamma0_omega);
   return -1.0 * C_omega * d * f * std::cos(phi_omega) / (e * e + f * f);
