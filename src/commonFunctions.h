@@ -67,7 +67,7 @@ const std::string deltaPhiLabel = useDeltaPhiRandom ? "#Delta#it{#phi}_{random}"
 const std::vector<double> pTbinEdges = {0.0, 0.1};
 const int nBinsPt = pTbinEdges.size() - 1;
 
-const bool separateXn0n = true;
+const bool separateXn0n = false;
 
 const bool fixPoles = true;
 
