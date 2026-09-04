@@ -24,12 +24,12 @@ void fixOmega() {
   }
 
   // fit function for muons
-  TF1 *fitFuncMuons = new TF1("fitFuncMuons", "[0]*x^(-[1])", localFitMin, localFitMax);
+  TF1 *fitFuncMuons = new TF1("fitFuncMuons", "[0]*x^(-[1])", 0.6, 1.0);
   fitFuncMuons->SetParNames("#it{a}_{#mu}", "#it{b}_{#mu}");
   fitFuncMuons->SetParameters(1000.0, -10.0);
 
   // fit the muons to get the slope
-  TFitResultPtr muonFit = hMuonSum->Fit(fitFuncMuons, "EMR0S", "", localFitMin, localFitMax);
+  TFitResultPtr muonFit = hMuonSum->Fit(fitFuncMuons, "EMR0S", "", 0.6, 1.0);
   if (!muonFit) std::cerr << "Error: Muon fit failed for the whole sample" << std::endl;
   double muonSlope = fitFuncMuons->GetParameter(1);
   // plot the muon fit result
@@ -50,7 +50,7 @@ void fixOmega() {
   // fit function for soeding
   TF1 *fitFuncSoeding = new TF1("fitFuncSoeding", Soeding, localFitMin, localFitMax, 10);
   fitFuncSoeding->SetParNames("#it{A}_{#rho}", "#it{m}_{#rho}", "#it{#Gamma}_{#rho}", "#it{C}_{#omega}", "#it{m}_{#omega}", "#it{#Gamma}_{#omega}", "#it{#phi}_{#omega}", "#it{B}_{#pi#pi}", "#it{a}_{#mu}", "#it{b}_{#mu}");
-  fitFuncSoeding->SetParameters(500.0, kMrho, kWrho, -10.0, kMomega, kWomega, -1.2, -315.0, muonSlope);
+  fitFuncSoeding->SetParameters(500.0, kMrho, kWrho, -10.0, kMomega, kWomega, 1.46, -315.0, muonSlope);
   fitFuncSoeding->FixParameter(1, kMrho);
   fitFuncSoeding->FixParameter(2, kWrho);
   fitFuncSoeding->FixParameter(4, kMomega);
@@ -75,7 +75,21 @@ void fixOmega() {
   fitFuncSoeding->SetNpx(1000);
   fitFuncSoeding->SetLineWidth(2);
   fitFuncSoeding->Draw("same");
-  // cSoeding->SaveAs("output/fitResults/soedingFitGlobal.pdf");
+
+  // make a legend for the fitted parameters
+  TLegend* soedingStats = new TLegend(0.5, 0.45, 0.9, 0.89);
+  soedingStats->SetTextAlign(32);
+  soedingStats->SetBorderSize(0);
+  soedingStats->SetFillStyle(0);
+  soedingStats->AddEntry((TObject*)0, "ALICE Pb#font[122]{-}Pb UPC #sqrt{s_{NN}} = 5.36 TeV", "");
+  soedingStats->AddEntry((TObject*)0, "#rho^{0} #rightarrow #pi^{+}#pi^{-}, AnAn", "");
+  for (int p = 0; p < fitFuncSoeding->GetNpar(); p++) {
+    if (fixPoles && (p == 1 || p == 2 || p == 4 || p == 5)) continue; // skip fixed parameters
+    if (p == 9) continue; // skip muon b parameter
+    soedingStats->AddEntry((TObject*)0, Form("%s = %.2f #pm %.2f", fitFuncSoeding->GetParName(p), fitFuncSoeding->GetParameter(p), fitFuncSoeding->GetParError(p)), "");
+  }
+  soedingStats->AddEntry((TObject*)0, Form("#it{#chi}^{2}/ndf = %.1f", fitFuncSoeding->GetChisquare()/fitFuncSoeding->GetNDF()), "");
+  soedingStats->Draw();
 
   // save result into a root file
   TFile *fOut = new TFile("output/omegaPhase.root", "RECREATE");
