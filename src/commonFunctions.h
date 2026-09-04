@@ -56,8 +56,8 @@ const int nBinsMass = 50;
 const double fitMin = 0.60;
 const double fitMax = 1.00;
 
-const double maxY = 0.9;
-const int nBinsY = 180;
+const double maxY = 0.5;
+const int nBinsY = 100;
 
 const int nBinsDeltaPhi = 12;
 
