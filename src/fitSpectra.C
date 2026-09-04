@@ -52,7 +52,6 @@ void fitSpectra() {
         const double phiBinWidth = (2.0 * TMath::Pi()) / nBinsDeltaPhi;
         const double phiBinMin = -TMath::Pi() + (k - 1) * phiBinWidth;
         const double phiBinMax = phiBinMin + phiBinWidth;
-        // i would like to print this into the plot in multiples of pi, to make obvious that the range is really -pi to pi
         const TString phiBinLabel = Form("%s #in [%.2f #pi, %.2f #pi) rad", deltaPhiLabel.c_str(), phiBinMin/TMath::Pi(), phiBinMax/TMath::Pi());
 
         // get muon histogram and fit it with the muon fit funtion
@@ -101,7 +100,6 @@ void fitSpectra() {
         muonStats->AddEntry((TObject*)0, Form("misidentified #gamma#gamma #rightarrow #mu^{+}#mu^{-}, %s", neutronClasses[i].Data()), "");
         muonStats->AddEntry((TObject*)0, Form("%.2f #leq #it{p}_{T} #leq %.2f GeV/#it{c}, | #it{y}| #leq %.1f", pTbinEdges[j], pTbinEdges[j+1], maxY), "");
         muonStats->AddEntry((TObject*)0, phiBinLabel, "");
-        // muonStats->AddEntry((TObject*)0, Form("%s #in (%.2f, %.2f) rad", deltaPhiLabel.c_str(), phiBinMin, phiBinMax), "");
         muonStats->AddEntry((TObject*)0, Form("#it{a}_{#mu} = %.0f #pm %.0f", fitFuncMuons->GetParameter(0), fitFuncMuons->GetParError(0)), "");
         muonStats->AddEntry((TObject*)0, Form("#it{b}_{#mu} = %.1f #pm %.1f", fitFuncMuons->GetParameter(1), fitFuncMuons->GetParError(1)), "");
         muonStats->AddEntry((TObject*)0, Form("#it{#chi}^{2}/ndf = %.1f", fitFuncMuons->GetChisquare()/fitFuncMuons->GetNDF()), "");
@@ -142,8 +140,6 @@ void fitSpectra() {
         if (neutronClasses[i] == "0n0n") fitFuncSoeding->SetParameters(450.0, kMrho, kWrho, -10.0, kMomega, kWomega, omegaPhase, -310.0, 8e3);
         if (neutronClasses[i] == "Xn0n" || neutronClasses[i] == "0nXn") fitFuncSoeding->SetParameters(110.0, kMrho, kWrho, -2.0, kMomega, kWomega, omegaPhase, -55.0, 500.0);
         if (neutronClasses[i] == "XnXn") fitFuncSoeding->SetParameters(55.0, kMrho, kWrho, 0.0, kMomega, kWomega, omegaPhase, -17.0, 150.0);
-        fitFuncSoeding->SetParLimits(3, -50.0, 0.0);
-        // if (neutronClasses[i] == "XnXn") fitFuncSoeding->FixParameter(3, 0.0); // no omega contribution in XnXn class
         fitFuncSoeding->SetParLimits(6, -TMath::Pi(), 0.0); 
         fitFuncSoeding->SetParLimits(7, -1000.0, 0.0);
         fitFuncSoeding->FixParameter(9, fitFuncMuons->GetParameter(1)); // muon b
@@ -179,7 +175,6 @@ void fitSpectra() {
         hData->GetXaxis()->SetLabelSize(0.04);
         hData->GetYaxis()->SetLabelSize(0.04);
         hData->GetYaxis()->SetTitle(Form("corrected counts per %.2f GeV/ #it{c}^{2}", hData->GetBinWidth(1)));
-        // hData->GetYaxis()->SetTitle("corrected counts");
         hData->Draw("e");
         
         fitFuncSoeding->SetLineColorAlpha(tabOrange, 1.0);
@@ -249,7 +244,6 @@ void fitSpectra() {
         soedingStats->AddEntry((TObject*)0, phiBinLabel, "");
         for (int p = 0; p < fitFuncSoeding->GetNpar(); p++) {
           if (fixPoles && (p == 1 || p == 2 || p == 4 || p == 5)) continue; // skip fixed parameters
-          if (p == 9) continue; // skip muon b parameter
           soedingStats->AddEntry((TObject*)0, Form("%s = %.2f #pm %.2f", fitFuncSoeding->GetParName(p), fitFuncSoeding->GetParameter(p), fitFuncSoeding->GetParError(p)), "");
         }
         soedingStats->AddEntry((TObject*)0, Form("#it{#chi}^{2}/ndf = %.1f", fitFuncSoeding->GetChisquare()/fitFuncSoeding->GetNDF()), "");
@@ -320,8 +314,7 @@ void fitSpectra() {
       hRhoYield->GetYaxis()->SetTitleSize(0.04);
       hRhoYield->GetXaxis()->SetLabelSize(0.04);
       hRhoYield->GetYaxis()->SetLabelSize(0.04);
-      hRhoYield->GetYaxis()->SetTitle("corrected #rho^{0} yield");
-      // hRhoYield->SetMaximum(hRhoYield->GetMaximum()*1.05);
+      hRhoYield->GetYaxis()->SetTitle("integrated #rho^{0} yield");
       hRhoYield->Draw("e");
       fitFuncYield->SetLineColorAlpha(tabOrange, 1.0);
       fitFuncYield->SetNpx(1000);
