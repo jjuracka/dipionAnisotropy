@@ -92,6 +92,51 @@ const std::vector<int> tabColours = {tabBlue, tabOrange, tabGreen, tabRed, tabPu
 // for reweighting
 std::vector<double> rValues = {7.00, 7.10, 7.20, 7.30, 7.40, 7.50, 7.60, 7.70, 7.80, 7.90, 8.00, 8.10, 8.20, 8.30, 8.40, 8.50, 8.60, 8.70, 8.80, 8.90, 9.00};
 
+// runlist
+std::vector<unsigned int> runNumberPbPb = {544013, 544028, 544032, 544091, 544095, 544098, 544116, 544121, 544122, 544123, 544124, 544184, 544185, 544389, 544390, 544391, 544392, 544451, 544454, 544474, 544475, 544476, 544477, 544490, 544491, 544492, 544508, 544510, 544511, 544512, 544514, 544515, 544518, 544548, 544549, 544550, 544551, 544564, 544565, 544567, 544568, 544580, 544582, 544583, 544585, 544614, 544640, 544652, 544653, 544672, 544674, 544692, 544693, 544694, 544696, 544739, 544742, 544754, 544767, 544794, 544795, 544797, 544813, 544868, 544886, 544887, 544896, 544913, 544914, 544917, 544931, 544947, 544961, 544963, 544964, 544968, 544992, 545009, 545044, 545047, 545063, 545064, 545066, 545185, 545210, 545223, 545249, 545291, 545294, 545295, 545296, 545312};
+
+// read bunch filling shcheme histograms and form a map of run numbers with their corresponding bunch filling scheme
+std::map<int, std::vector<int>> readBunchFillingScheme() {
+  std::map<int, std::vector<int>> runToBunchFillingScheme;
+
+  for (const auto& runNumber : runNumberPbPb) {
+    const TString fileName = Form("/home/juracjak/analysis/dipionAnisotropy/input/fillSchemes/%d.root", runNumber);
+    TFile file(fileName, "READ");
+    if (!file.IsOpen()) {
+      std::cerr << "ERROR: Cannot open file " << fileName << std::endl;
+      continue;
+    }
+
+    TH1D* hB = dynamic_cast<TH1D*>(file.Get("hB"));
+    if (!hB) {
+      std::cerr << "ERROR: Cannot find histogram hB in file " << fileName << std::endl;
+      continue;
+    }
+
+    std::vector<int> bunchFillingScheme;
+    for (int bin = 1; bin <= hB->GetNbinsX(); ++bin) {
+      if (hB->GetBinContent(bin) != 0) {
+        bunchFillingScheme.push_back(static_cast<int>(hB->GetBinCenter(bin)));
+      }
+    }
+
+    runToBunchFillingScheme[runNumber] = bunchFillingScheme;
+  }
+
+  return runToBunchFillingScheme;
+}
+
+bool isBBunch(int runNumber, int bunchId, const std::map<int, std::vector<int>>& runToBunchFillingScheme) {
+  auto it = runToBunchFillingScheme.find(runNumber);
+  if (it == runToBunchFillingScheme.end()) {
+    std::cerr << "ERROR: Run number " << runNumber << " not found in bunch filling scheme map." << std::endl;
+    return false;
+  }
+
+  const auto& bunchFillingScheme = it->second;
+  return std::find(bunchFillingScheme.begin(), bunchFillingScheme.end(), bunchId) != bunchFillingScheme.end();
+}
+
 // constants for fitting
 // auto PDG = TDatabasePDG::Instance();
 const double kMpi = 0.13957039; //PDG->GetParticle(211)->Mass();
