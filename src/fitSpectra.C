@@ -12,6 +12,7 @@ void fitSpectra() {
   TFile *fGlobalFit = new TFile("output/omegaPhase.root", "READ");
   TH1D *hOmegaPhase = (TH1D*) fGlobalFit->Get("hOmegaPhase");
   double omegaPhase = hOmegaPhase->GetBinContent(1);
+  double omegaPhaseError = hOmegaPhase->GetBinError(1);
 
   // fit function for muons
   TF1 *fitFuncMuons = new TF1("fitFuncMuons", "[0]*x^(-[1])", fitMin, fitMax);
@@ -143,12 +144,14 @@ void fitSpectra() {
         fitFuncSoeding->SetParLimits(6, -TMath::Pi(), 0.0); 
         fitFuncSoeding->SetParLimits(7, -1000.0, 0.0);
         fitFuncSoeding->FixParameter(9, fitFuncMuons->GetParameter(1)); // muon b
+        fitFuncSoeding->SetParError(9, fitFuncMuons->GetParError(1)); // set the error of the muon b parameter to the value obtained from the muon fit
         if (fixPoles) {
           fitFuncSoeding->FixParameter(1, kMrho);
           fitFuncSoeding->FixParameter(2, kWrho);
           fitFuncSoeding->FixParameter(4, kMomega);
           fitFuncSoeding->FixParameter(5, kWomega);
         }
+        fitFuncSoeding->SetParError(6, omegaPhaseError); // set the error of the omega phase parameter to the value obtained from the global fit
         fitFuncSoeding->FixParameter(6, omegaPhase); // fix omega phase to the value obtained from the global fit
         TFitResultPtr fitResult = hData->Fit(fitFuncSoeding, "EMR0S", "", fitMin, fitMax);
         double *fitParameters = fitFuncSoeding->GetParameters();
