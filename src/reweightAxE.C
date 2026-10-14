@@ -102,7 +102,7 @@ TH2D* getNumerator(int pTbin) {
                   .Filter([minPt, maxPt](double recoPt) { return recoPt >= minPt && recoPt < maxPt; }, {"recoPt"})
                   .Define("recoDeltaPhi", getDeltaPhi, {"fLeadingSign", "fSubleadingSign", "fLeadingRecoPt", "fSubleadingRecoPt", "fLeadingRecoEta", "fSubleadingRecoEta", "fLeadingRecoPhi", "fSubleadingRecoPhi"})
                   .Define("recoY", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"recoSystemLV"})
-                  .Filter("std::abs(recoY) <= 0.9")
+                  .Filter("std::abs(recoY) <= 0.5")
                   .Define("recoM", [](const TLorentzVector& lv) { return lv.M(); }, {"recoSystemLV"})
                   // define bestR depending on the generated deltaPhi, using the averagedR histogram
                   .Define("bestR", [hAveragedR](const double genDeltaPhi) {

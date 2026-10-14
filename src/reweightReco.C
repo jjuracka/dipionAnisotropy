@@ -54,7 +54,7 @@ void reweightReco() {
                   .Define("recoPt", [](const TLorentzVector& lv) { return lv.Pt(); }, {"recoSystemLV"})
                   .Filter("recoPt <= 0.1")
                   .Define("recoY", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"recoSystemLV"})
-                  .Filter("std::abs(recoY) <= 0.9")
+                  .Filter("std::abs(recoY) <= 0.5")
                   .Define("recoDeltaPhi", getDeltaPhi, {"fLeadingSign", "fSubleadingSign", "fLeadingRecoPt", "fSubleadingRecoPt", "fLeadingRecoEta", "fSubleadingRecoEta", "fLeadingRecoPhi", "fSubleadingRecoPhi"});
 
   std::vector<ROOT::RDF::RResultPtr<TH2D>> hRecoPtWeighted; // storage for the weighted histograms
