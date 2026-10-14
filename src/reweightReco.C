@@ -43,8 +43,11 @@ void reweightReco() {
 
   const auto weightHistograms = loadWeightHistograms();
 
+  std::map<int, std::vector<int>> bunchFillingScheme = readBunchFillingScheme();
+
   // base DataFrame with calcuated gen and reco pT
-  auto dfBase = df.Define("genSystemLV", getRho, {"fLeadingGenPt", "fSubleadingGenPt", "fLeadingGenEta", "fSubleadingGenEta", "fLeadingGenPhi", "fSubleadingGenPhi"})
+  auto dfBase = df.Filter([&bunchFillingScheme](int recoRunNumber, int recoLocalBC) { return isBBunch(recoRunNumber, recoLocalBC, bunchFillingScheme); }, {"fRecoRunNumber", "fRecoLocalBC"})
+                  .Define("genSystemLV", getRho, {"fLeadingGenPt", "fSubleadingGenPt", "fLeadingGenEta", "fSubleadingGenEta", "fLeadingGenPhi", "fSubleadingGenPhi"})
                   .Define("genPt", [](const TLorentzVector& lv) { return lv.Pt(); }, {"genSystemLV"})
                   .Define("genDeltaPhi", getDeltaPhi, {"fLeadingSign", "fSubleadingSign", "fLeadingGenPt", "fSubleadingGenPt", "fLeadingGenEta", "fSubleadingGenEta", "fLeadingGenPhi", "fSubleadingGenPhi"})
                   .Define("recoSystemLV", getRho, {"fLeadingRecoPt", "fSubleadingRecoPt", "fLeadingRecoEta", "fSubleadingRecoEta", "fLeadingRecoPhi", "fSubleadingRecoPhi"})

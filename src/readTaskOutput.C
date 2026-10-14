@@ -27,13 +27,16 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
   ROOT::RDataFrame df(treePath, path);
   ROOT::RDF::Experimental::AddProgressBar(df);
 
+  std::map<int, std::vector<int>> bunchFillingScheme = readBunchFillingScheme();
+
   // start applying filters and define variables
-  auto cut = df.Filter(tracksPassPID, {"fLeadingTrackPiPID", "fSubleadingTrackPiPID"})
-               .Define("systemLV", getRho, {"fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"})
-               .Define("mass", [](const TLorentzVector& lv) { return lv.M(); }, {"systemLV"})
-               .Define("pT", [](const TLorentzVector& lv) { return lv.Pt(); }, {"systemLV"})
-               .Define("rapidity", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"systemLV"})
-               .Define("deltaPhi", getDeltaPhi, {"fLeadingTrackSign", "fSubleadingTrackSign", "fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"});
+  auto events = df.Filter([&bunchFillingScheme](int runNumber, int bcId) { return isBBunch(runNumber, bcId, bunchFillingScheme); }, {"fRunNumber", "fLocalBC"})
+                  .Filter(tracksPassPID, {"fLeadingTrackPiPID", "fSubleadingTrackPiPID"})
+                  .Define("systemLV", getRho, {"fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"})
+                  .Define("mass", [](const TLorentzVector& lv) { return lv.M(); }, {"systemLV"})
+                  .Define("pT", [](const TLorentzVector& lv) { return lv.Pt(); }, {"systemLV"})
+                  .Define("rapidity", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"systemLV"})
+                  .Define("deltaPhi", getDeltaPhi, {"fLeadingTrackSign", "fSubleadingTrackSign", "fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"});
 
   const auto neutronFilters = getNeutronFilters(isMC);
   const auto chargeFilters = getChargeFilters(isMC);
