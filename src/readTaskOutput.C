@@ -53,64 +53,65 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
         // select pT range
         const double minPt = pTbinEdges[i];
         const double maxPt = pTbinEdges[i + 1];
-        auto fullCutWide = cut.Filter(neutronFilter.expression)
-                              .Filter(chargeFilter.expression);
-        auto fullCut = fullCutWide.Filter([minPt, maxPt](const TLorentzVector& lv) { return systemPassesCuts(lv, minPt, maxPt); }, {"systemLV"});
+        auto eventsFiltered = events.Filter(neutronFilter.expression)
+                                    .Filter(chargeFilter.expression);
+        auto eventsFilteredPtCuts = eventsFiltered.Filter([minPt, maxPt](const TLorentzVector& lv) { return systemPassesCuts(lv, minPt, maxPt); }, {"systemLV"});
+        auto eventsFilteredPtCutsWithTof = eventsFilteredPtCuts.Filter("fLeadingTrackTofHit + fSubleadingTrackTofHit > 0"); // require at least one track with TOF hit
 
         // initialise histograms for storage in prepared vectors
-        auto hM = fullCut.Histo1D<double>({"hM", Form("hM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass}, "mass");
+        auto hM = eventsFilteredPtCuts.Histo1D<double>({"hM", Form("hM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass}, "mass");
         vecM.push_back(hM);
 
-        auto hPt = fullCut.Histo1D<double>({"hPt", Form("hPt for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 100, 0.0, 0.1}, "pT");
+        auto hPt = eventsFilteredPtCuts.Histo1D<double>({"hPt", Form("hPt for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 100, 0.0, 0.1}, "pT");
         vecPt.push_back(hPt);
 
-        auto hY = fullCut.Histo1D<double>({"hY", Form("hY for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{y};counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsY, -maxY, maxY}, "rapidity");
+        auto hY = eventsFilteredPtCuts.Histo1D<double>({"hY", Form("hY for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{y};counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsY, -maxY, maxY}, "rapidity");
         vecY.push_back(hY);
 
-        auto hDeltaPhi = fullCut.Histo1D<double>({"hDeltaPhi", Form("hDeltaPhi for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "deltaPhi");
+        auto hDeltaPhi = eventsFilteredPtCuts.Histo1D<double>({"hDeltaPhi", Form("hDeltaPhi for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "deltaPhi");
         vecDeltaPhi.push_back(hDeltaPhi);
 
-        auto hTotalFT0AmplitudeA = fullCut.Histo1D<float>({"hTotalFT0AmplitudeA", Form("hTotalFT0AmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FT0 Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFT0AmplitudeA");
+        auto hTotalFT0AmplitudeA = eventsFilteredPtCuts.Histo1D<float>({"hTotalFT0AmplitudeA", Form("hTotalFT0AmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FT0 Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFT0AmplitudeA");
         vecTotalFT0AmplitudeA.push_back(hTotalFT0AmplitudeA);
 
-        auto hTotalFT0AmplitudeC = fullCut.Histo1D<float>({"hTotalFT0AmplitudeC", Form("hTotalFT0AmplitudeC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FT0 Amplitude C;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFT0AmplitudeC");
+        auto hTotalFT0AmplitudeC = eventsFilteredPtCuts.Histo1D<float>({"hTotalFT0AmplitudeC", Form("hTotalFT0AmplitudeC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FT0 Amplitude C;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFT0AmplitudeC");
         vecTotalFT0AmplitudeC.push_back(hTotalFT0AmplitudeC);
 
-        auto hTotalFV0AmplitudeA = fullCut.Histo1D<float>({"hTotalFV0AmplitudeA", Form("hTotalFV0AmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FV0 Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFV0AmplitudeA");
+        auto hTotalFV0AmplitudeA = eventsFilteredPtCuts.Histo1D<float>({"hTotalFV0AmplitudeA", Form("hTotalFV0AmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FV0 Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFV0AmplitudeA");
         vecTotalFV0AmplitudeA.push_back(hTotalFV0AmplitudeA);
 
-        auto hTotalFDDAmplitudeA = fullCut.Histo1D<float>({"hTotalFDDAmplitudeA", Form("hTotalFDDAmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FDD Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFDDAmplitudeA");
+        auto hTotalFDDAmplitudeA = eventsFilteredPtCuts.Histo1D<float>({"hTotalFDDAmplitudeA", Form("hTotalFDDAmplitudeA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FDD Amplitude A;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFDDAmplitudeA");
         vecTotalFDDAmplitudeA.push_back(hTotalFDDAmplitudeA);
 
-        auto hTotalFDDAmplitudeC = fullCut.Histo1D<float>({"hTotalFDDAmplitudeC", Form("hTotalFDDAmplitudeC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FDD Amplitude C;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFDDAmplitudeC");
+        auto hTotalFDDAmplitudeC = eventsFilteredPtCuts.Histo1D<float>({"hTotalFDDAmplitudeC", Form("hTotalFDDAmplitudeC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); Total FDD Amplitude C;counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 300, -100.0, 200.0}, "fTotalFDDAmplitudeC");
         vecTotalFDDAmplitudeC.push_back(hTotalFDDAmplitudeC);
 
-        auto hTimeFT0A = fullCut.Histo1D<float>({"hTimeFT0A", Form("hTimeFT0A for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FT0 A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFT0A");
+        auto hTimeFT0A = eventsFilteredPtCuts.Histo1D<float>({"hTimeFT0A", Form("hTimeFT0A for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FT0 A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFT0A");
         vecTimeFT0A.push_back(hTimeFT0A);
 
-        auto hTimeFT0C = fullCut.Histo1D<float>({"hTimeFT0C", Form("hTimeFT0C for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FT0 C time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFT0C");
+        auto hTimeFT0C = eventsFilteredPtCuts.Histo1D<float>({"hTimeFT0C", Form("hTimeFT0C for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FT0 C time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFT0C");
         vecTimeFT0C.push_back(hTimeFT0C);
 
-        auto hTimeFV0A = fullCut.Histo1D<float>({"hTimeFV0A", Form("hTimeFV0A for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FV0 A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFV0A");
+        auto hTimeFV0A = eventsFilteredPtCuts.Histo1D<float>({"hTimeFV0A", Form("hTimeFV0A for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FV0 A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFV0A");
         vecTimeFV0A.push_back(hTimeFV0A);
 
-        auto hTimeFDDA = fullCut.Histo1D<float>({"hTimeFDDA", Form("hTimeFDDA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FDD A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFDDA");
+        auto hTimeFDDA = eventsFilteredPtCuts.Histo1D<float>({"hTimeFDDA", Form("hTimeFDDA for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FDD A time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFDDA");
         vecTimeFDDA.push_back(hTimeFDDA);
 
-        auto hTimeFDDC = fullCut.Histo1D<float>({"hTimeFDDC", Form("hTimeFDDC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FDD C time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFDDC");
+        auto hTimeFDDC = eventsFilteredPtCuts.Histo1D<float>({"hTimeFDDC", Form("hTimeFDDC for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); FDD C time (ns);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 400, -20.0, 20.0}, "fTimeFDDC");
         vecTimeFDDC.push_back(hTimeFDDC);
 
-        auto hDeltaPhiVsM = fullCut.Histo2D<double, double>({"hDeltaPhiVsM", Form("hDeltaPhiVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "deltaPhi");
+        auto hDeltaPhiVsM = eventsFilteredPtCuts.Histo2D<double, double>({"hDeltaPhiVsM", Form("hDeltaPhiVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "deltaPhi");
         vecDeltaPhiVsM.push_back(hDeltaPhiVsM);
 
-        auto hPtVsM = fullCut.Histo2D<double, double>({"hPtVsM", Form("hPtVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 100, 0.0, 0.1}, "mass", "pT");
+        auto hPtVsM = eventsFilteredPtCuts.Histo2D<double, double>({"hPtVsM", Form("hPtVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 5, 0.0, 0.1}, "mass", "pT");
         vecPtVsM.push_back(hPtVsM);
 
-        auto hDeltaPhiVsPt = fullCut.Histo2D<double, double>({"hDeltaPhiVsPt", Form("hDeltaPhiVsPt for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 100, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
+        auto hDeltaPhiVsPt = eventsFilteredPtCuts.Histo2D<double, double>({"hDeltaPhiVsPt", Form("hDeltaPhiVsPt for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 100, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPt.push_back(hDeltaPhiVsPt);
 
         // for reweighting
-        auto hDeltaPhiVsPtWide = fullCutWide.Histo2D<double, double>({"hDeltaPhiVsPtWide", Form("hDeltaPhiVsPtWide for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 1000, 0.0, 1.0, 120, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
+        auto hDeltaPhiVsPtWide = eventsFiltered.Histo2D<double, double>({"hDeltaPhiVsPtWide", Form("hDeltaPhiVsPtWide for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 1000, 0.0, 1.0, 120, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPtWide.push_back(hDeltaPhiVsPtWide);
 
         auto hDeltaPhiVsMwithTof = eventsFilteredPtCutsWithTof.Histo2D<double, double>({"hDeltaPhiVsMwithTof", Form("hDeltaPhiVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "deltaPhi");
@@ -176,11 +177,11 @@ void processGenTree(TString path, TString tree, TString outFileName) {
   ROOT::RDataFrame df(treePath, path);
   ROOT::RDF::Experimental::AddProgressBar(df);
 
-  auto cut = df.Define("systemLV", getRho, {"fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"})
-               .Define("mass", [](const TLorentzVector& lv) { return lv.M(); }, {"systemLV"})
-               .Define("pT", [](const TLorentzVector& lv) { return lv.Pt(); }, {"systemLV"})
-               .Define("rapidity", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"systemLV"})
-               .Define("deltaPhi", getDeltaPhi, {"fLeadingTrackSign", "fSubleadingTrackSign", "fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"});
+  auto events = df.Define("systemLV", getRho, {"fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"})
+                  .Define("mass", [](const TLorentzVector& lv) { return lv.M(); }, {"systemLV"})
+                  .Define("pT", [](const TLorentzVector& lv) { return lv.Pt(); }, {"systemLV"})
+                  .Define("rapidity", [](const TLorentzVector& lv) { return lv.Rapidity(); }, {"systemLV"})
+                  .Define("deltaPhi", getDeltaPhi, {"fLeadingTrackSign", "fSubleadingTrackSign", "fLeadingTrackPt", "fSubleadingTrackPt", "fLeadingTrackEta", "fSubleadingTrackEta", "fLeadingTrackPhi", "fSubleadingTrackPhi"});
 
   const auto neutronFilters = getNeutronFilters(true);
   const auto chargeFilters = getChargeFilters(true);
@@ -194,30 +195,30 @@ void processGenTree(TString path, TString tree, TString outFileName) {
       for (int i = 0; i < nBinsPt; ++i) {
         const double minPt = pTbinEdges[i];
         const double maxPt = pTbinEdges[i + 1];
-        auto fullCut = cut.Filter([minPt, maxPt](const TLorentzVector& lv) { return systemPassesCuts(lv, minPt, maxPt); }, {"systemLV"});
+        auto eventsFilteredPtCuts = events.Filter([minPt, maxPt](const TLorentzVector& lv) { return systemPassesCuts(lv, minPt, maxPt); }, {"systemLV"});
 
-        auto hM = fullCut.Histo1D<double>({"hM", Form("hM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass}, "mass");
+        auto hM = eventsFilteredPtCuts.Histo1D<double>({"hM", Form("hM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass}, "mass");
         vecM.push_back(hM);
 
-        auto hPt = fullCut.Histo1D<double>({"hPt", Form("hPt for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 100, 0.0, 0.1}, "pT");
+        auto hPt = eventsFilteredPtCuts.Histo1D<double>({"hPt", Form("hPt for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), 100, 0.0, 0.1}, "pT");
         vecPt.push_back(hPt);
 
-        auto hY = fullCut.Histo1D<double>({"hY", Form("hY for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{y};counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsY, -maxY, maxY}, "rapidity");
+        auto hY = eventsFilteredPtCuts.Histo1D<double>({"hY", Form("hY for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{y};counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsY, -maxY, maxY}, "rapidity");
         vecY.push_back(hY);
 
-        auto hDeltaPhi = fullCut.Histo1D<double>({"hDeltaPhi", Form("hDeltaPhi for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "deltaPhi");
+        auto hDeltaPhi = eventsFilteredPtCuts.Histo1D<double>({"hDeltaPhi", Form("hDeltaPhi for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "deltaPhi");
         vecDeltaPhi.push_back(hDeltaPhi);
 
-        auto hDeltaPhiVsM = fullCut.Histo2D<double, double>({"hDeltaPhiVsM", Form("hDeltaPhiVsM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "deltaPhi");
+        auto hDeltaPhiVsM = eventsFilteredPtCuts.Histo2D<double, double>({"hDeltaPhiVsM", Form("hDeltaPhiVsM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "deltaPhi");
         vecDeltaPhiVsM.push_back(hDeltaPhiVsM);
 
-        auto hPtVsM = fullCut.Histo2D<double, double>({"hPtVsM", Form("hPtVsM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 100, 0.0, 0.1}, "mass", "pT");
+        auto hPtVsM = eventsFilteredPtCuts.Histo2D<double, double>({"hPtVsM", Form("hPtVsM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 100, 0.0, 0.1}, "mass", "pT");
         vecPtVsM.push_back(hPtVsM);
 
-        auto hDeltaPhiVsPt = fullCut.Histo2D<double, double>({"hDeltaPhiVsPt", Form("hDeltaPhiVsPt for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 100, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
+        auto hDeltaPhiVsPt = eventsFilteredPtCuts.Histo2D<double, double>({"hDeltaPhiVsPt", Form("hDeltaPhiVsPt for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 100, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPt.push_back(hDeltaPhiVsPt);
 
-        auto hDeltaPhiVsPtWide = cut.Histo2D<double, double>({"hDeltaPhiVsPtWide", Form("hDeltaPhiVsPtWide for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 1000, 0.0, 1.0, 120, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
+        auto hDeltaPhiVsPtWide = events.Histo2D<double, double>({"hDeltaPhiVsPtWide", Form("hDeltaPhiVsPtWide for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 1000, 0.0, 1.0, 120, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPtWide.push_back(hDeltaPhiVsPtWide);
 
         hNames.emplace_back(neutronFilter.name, chargeFilter.name, i);
