@@ -45,6 +45,7 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
   std::vector<ROOT::RDF::RResultPtr<TH1D>> vecM, vecPt, vecY, vecDeltaPhi;
   std::vector<ROOT::RDF::RResultPtr<TH1D>> vecTotalFT0AmplitudeA, vecTotalFT0AmplitudeC, vecTotalFV0AmplitudeA, vecTotalFDDAmplitudeA, vecTotalFDDAmplitudeC, vecTimeFT0A, vecTimeFT0C, vecTimeFV0A, vecTimeFDDA, vecTimeFDDC;
   std::vector<ROOT::RDF::RResultPtr<TH2D>> vecDeltaPhiVsM, vecPtVsM, vecDeltaPhiVsPt, vecDeltaPhiVsPtWide, vecDeltaPhiVsMwithTof, vecPtVsMwithTof;
+  std::vector<ROOT::RDF::RResultPtr<TH3D>> vecDeltaPhiVsPtVsM, vecDeltaPhiVsPtVsMwithTof;
   std::vector<std::tuple<std::string, std::string, int>> hNames;
 
   for (const auto& neutronFilter : neutronFilters) {
@@ -107,6 +108,9 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
         auto hPtVsM = eventsFilteredPtCuts.Histo2D<double, double>({"hPtVsM", Form("hPtVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 5, 0.0, 0.1}, "mass", "pT");
         vecPtVsM.push_back(hPtVsM);
 
+        auto hDeltaPhiVsPtVsM = eventsFilteredPtCuts.Histo3D<double, double, double>({"hDeltaPhiVsPtVsM", Form("hDeltaPhiVsPtVsM for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi(), 5, 0.0, 0.1}, "mass", "deltaPhi", "pT");
+        vecDeltaPhiVsPtVsM.push_back(hDeltaPhiVsPtVsM);
+
         auto hDeltaPhiVsPt = eventsFilteredPtCuts.Histo2D<double, double>({"hDeltaPhiVsPt", Form("hDeltaPhiVsPt for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 100, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPt.push_back(hDeltaPhiVsPt);
 
@@ -119,6 +123,9 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
 
         auto hPtVsMwithTof = eventsFilteredPtCutsWithTof.Histo2D<double, double>({"hPtVsMwithTof", Form("hPtVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 5, 0.0, 0.1}, "mass", "pT");
         vecPtVsMwithTof.push_back(hPtVsMwithTof);
+
+        auto hDeltaPhiVsPtVsMwithTof = eventsFilteredPtCutsWithTof.Histo3D<double, double, double>({"hDeltaPhiVsPtVsMwithTof", Form("hDeltaPhiVsPtVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi(), 5, 0.0, 0.1}, "mass", "deltaPhi", "pT");
+        vecDeltaPhiVsPtVsMwithTof.push_back(hDeltaPhiVsPtVsMwithTof);
 
         // takes care of naming convention + directory creation
         hNames.emplace_back(neutronFilter.name, chargeFilter.name, i);
@@ -150,9 +157,11 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
     vecDeltaPhiVsM[i]->Write("hDeltaPhiVsM");
     vecPtVsM[i]->Write("hPtVsM");
     vecDeltaPhiVsPt[i]->Write("hDeltaPhiVsPt");
+    vecDeltaPhiVsPtVsM[i]->Write("hDeltaPhiVsPtVsM");
     vecDeltaPhiVsPtWide[i]->Write("hDeltaPhiVsPtWide");
     vecDeltaPhiVsMwithTof[i]->Write("hDeltaPhiVsMwithTof");
     vecPtVsMwithTof[i]->Write("hPtVsMwithTof");
+    vecDeltaPhiVsPtVsMwithTof[i]->Write("hDeltaPhiVsPtVsMwithTof");
     vecTotalFT0AmplitudeA[i]->Write("hTotalFT0AmplitudeA");
     vecTotalFT0AmplitudeC[i]->Write("hTotalFT0AmplitudeC");
     vecTotalFV0AmplitudeA[i]->Write("hTotalFV0AmplitudeA");

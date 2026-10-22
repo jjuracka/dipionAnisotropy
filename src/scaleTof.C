@@ -1,54 +1,106 @@
 #include "commonFunctions.h"
 
-TH1D* getCoefficients(TH1D* hNoTof, TH1D* hTof) {
+TH2D* getScalingCoefficients(TH2D* hNoTof, TH2D* hTof) {
   if (!hNoTof || !hTof) {
     std::cerr << "ERROR: One or both histograms are null!" << std::endl;
     return nullptr;
   }
 
-  if (hNoTof->GetNbinsX() != hTof->GetNbinsX()) {
+  if (hNoTof->GetNbinsX() != hTof->GetNbinsX() || hNoTof->GetNbinsY() != hTof->GetNbinsY()) {
     std::cerr << "ERROR: Histograms have different number of bins!" << std::endl;
     return nullptr;
   }
 
-  TH1D* hCoefficients = dynamic_cast<TH1D*>(hNoTof->Clone("hCoefficients"));
-  hCoefficients->SetTitle("TOF Scaling Coefficients;#it{m} (GeV/#it{c}^{2});scaling coefficient");
+  TH2D* hCoefficients = dynamic_cast<TH2D*>(hNoTof->Clone("hCoefficients"));
+  hCoefficients->SetTitle("TOF Scaling Coefficients; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); scaling coefficient");
   hCoefficients->Divide(hTof);
 
   return hCoefficients;
 }
 
-TH1D* correctSpectra(TH1D* hTof, TH1D* hCoefficients) {
+TH1D* correctSpectra(TH2D* hTof, TH2D* hCoefficients) {
   if (!hTof || !hCoefficients) {
     std::cerr << "ERROR: One or both histograms are null!" << std::endl;
     return nullptr;
   }
 
-  if (hTof->GetNbinsX() != hCoefficients->GetNbinsX()) {
+  if (hTof->GetNbinsX() != hCoefficients->GetNbinsX() || hTof->GetNbinsY() != hCoefficients->GetNbinsY()) {
     std::cerr << "ERROR: Histograms have different number of bins!" << std::endl;
     return nullptr;
   }
 
-  TH1D* hCorrected = dynamic_cast<TH1D*>(hTof->Clone("hCorrected"));
-  hCorrected->SetTitle("TOF-corrected spectrum;#it{m} (GeV/#it{c}^{2});counts");
-  hCorrected->Multiply(hCoefficients);
+  TH2D* hCorrected = dynamic_cast<TH2D*>(hTof->Clone("hCorrected"));
+  hCorrected->SetTitle("TOF-corrected spectrum; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); counts");
+  // hCorrected->Multiply(hCoefficients); // this does not work for 2D histograms, must be done manually with correct error propagation
+  for (int i = 1; i <= hTof->GetNbinsX(); ++i) {
+    for (int j = 1; j <= hTof->GetNbinsY(); ++j) {
+      double tofValue = hTof->GetBinContent(i, j);
+      double tofError = hTof->GetBinError(i, j);
+      double coeffValue = hCoefficients->GetBinContent(i, j);
+      double coeffError = hCoefficients->GetBinError(i, j);
+      if (coeffValue == 0) {
+        hCorrected->SetBinContent(i, j, 0);
+        hCorrected->SetBinError(i, j, 0);
+        continue;
+      }
+      hCorrected->SetBinContent(i, j, tofValue * coeffValue);
+      hCorrected->SetBinError(i, j, std::sqrt(std::pow(tofError * coeffValue, 2) + std::pow(tofValue * coeffError, 2)));
+    }
+  }
 
-  return hCorrected;
+  // project the corrected 2D histogram into a 1D histogram along the x-axis (m) for each pT bin
+  TH1D* hCorrected1D = hCorrected->ProjectionX("hCorrected1D");
+  hCorrected1D->SetTitle("TOF-corrected spectrum (1D projection); #it{m} (GeV/#it{c}^{2}); counts");
+
+  return hCorrected1D;
+  delete hCorrected; // clean up the 2D histogram to avoid memory leaks
+  delete hCorrected1D; // clean up the 1D histogram to avoid memory leaks
+}
+
+TH1D* applyAxE(TH1D *hist, TH1D *eff) {
+  TH1D *hDiv = (TH1D*)hist->Clone("hDiv");
+  // hDiv->Reset();
+
+  for (int bin = 1; bin <= hDiv->GetNbinsX(); ++bin) {
+    // get the AxE for the current bin
+    double AxE = eff->GetBinContent(bin);
+    if (AxE > 0) {
+      // get the bin content and error
+      double content = hist->GetBinContent(bin);
+      double sigmaContent = hist->GetBinError(bin);
+      // calculate the corrected content and error
+      double corrected = content / AxE;
+      double sigmaAxE = eff->GetBinError(bin);
+      double sigmaCorrected = TMath::Sqrt(
+        TMath::Power(sigmaContent / AxE, 2) +
+        TMath::Power(content * sigmaAxE / (AxE * AxE), 2)
+      );
+      // set the corrected content and error
+      hDiv->SetBinContent(bin, corrected);
+      hDiv->SetBinError(bin, sigmaCorrected);
+    } else { // if AxE is zero, set content and error to zero
+      hDiv->SetBinContent(bin, 0);
+      hDiv->SetBinError(bin, 0);
+    }
+  }
+  // return the divided histogram
+  return hDiv;
+  delete hDiv; // clean up the histogram to avoid memory leaks
 }
 
 void scaleTof() {
   globalSetup();
   
-  TFile* dataAxE = TFile::Open("output/AxEcorrected.root", "READ");
-  TFile* dataBase = TFile::Open("input/data.root", "READ");
-  TFile* muonBase = TFile::Open("input/muonReco.root", "READ");
+  TFile* corrections = TFile::Open("output/AxEcorrected.root", "READ");
+  TFile* data = TFile::Open("input/data.root", "READ");
+  TFile* muons = TFile::Open("input/muonReco.root", "READ");
 
-  TFile* scaledTof = TFile::Open("output/scaledTof.root", "RECREATE");
-
-  if (!dataAxE || !dataBase || !muonBase) {
+  if (!corrections || !data || !muons) {
     std::cerr << "ERROR: Cannot open one or more input files!" << std::endl;
     return;
   }
+
+  TFile* scaledTof = TFile::Open("output/scaledTof.root", "RECREATE");
 
   for (int i = 0; i < neutronClasses.size(); i++) {
     TDirectory* neutronDir = scaledTof->mkdir(neutronClasses[i].Data());
@@ -57,34 +109,62 @@ void scaleTof() {
       TDirectory* pTDir = neutronDir->mkdir(Form("pTbin_%d", j));
       pTDir->cd();
 
-      TH2D* hMuonTof = dynamic_cast<TH2D*>(muonBase->Get(Form("AnAn/unlike/pTbin_%d/hDeltaPhiVsMwithTof", j)));
-      TH2D* hDataTof = dynamic_cast<TH2D*>(dataBase->Get(Form("%s/unlike/pTbin_%d/hDeltaPhiVsMwithTof", neutronClasses[i].Data(), j)));
-      TH2D* hDataNoTof = dynamic_cast<TH2D*>(dataBase->Get(Form("%s/unlike/pTbin_%d/hDeltaPhiVsM", neutronClasses[i].Data(), j)));
+      TH2D* hDataTof = dynamic_cast<TH2D*>(data->Get(Form("AnAn/unlike/pTbin_%d/hPtVsMwithTof", j)));
+      TH2D* hDataNoTof = dynamic_cast<TH2D*>(data->Get(Form("AnAn/unlike/pTbin_%d/hPtVsM", j)));
+      TH2D* hDataCoefficients = getScalingCoefficients(hDataNoTof, hDataTof);
+      hDataCoefficients->Write("hDataCoefficients");
+      
+      // TH2D* hMuonTof = dynamic_cast<TH2D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hPtVsMwithTof", j)));
+      // TH2D* hMuonNoTof = dynamic_cast<TH2D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hPtVsM", j)));
+      // TH2D* hMuonCoefficients = getScalingCoefficients(hMuonNoTof, hMuonTof);
+      // hMuonCoefficients->Write("hMuonCoefficients");
+
+      // load 3D histograms storing events in (m, deltaPhi, pT) space
+      TH3D* hData3D = dynamic_cast<TH3D*>(data->Get(Form("%s/unlike/pTbin_%d/hDeltaPhiVsPtVsMwithTof", neutronClasses[i].Data(), j)));
+      if (!hData3D) {
+        std::cerr << "ERROR: Cannot find 3D histogram for neutron class " << neutronClasses[i].Data() << " and pT bin " << j << std::endl;
+        continue;
+      }
+
+      // same for muons
+      // TH3D* hMuon3D = dynamic_cast<TH3D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hDeltaPhiVsPtVsMwithTof", j)));
+      // if (!hMuon3D) {
+      //   std::cerr << "ERROR: Cannot find 3D histogram for muons and pT bin " << j << std::endl;
+      //   continue;
+      // }
 
       for (int k = 1; k <= nBinsDeltaPhi; ++k) {
         TDirectory* phiDir = pTDir->mkdir(Form("phibin_%d", k));
         phiDir->cd();
 
-        TH1D* hDataTofSlice = hDataTof->ProjectionX(Form("hDataTofSlice_pTbin_%d_deltaPhiBin_%d", j, k), k, k);
-        TH1D* hMuonTofSlice = hMuonTof->ProjectionX(Form("hMuonTofSlice_pTbin_%d_deltaPhiBin_%d", j, k), k, k);
-        TH1D* hDataNoTofSlice = dynamic_cast<TH1D*>(dataAxE->Get(Form("%s/pTbin_%d/phibin_%d/correctedSpectrum", neutronClasses[i].Data(), j, k)));
-        TH1D* hMuonNoTofSlice = dynamic_cast<TH1D*>(dataAxE->Get(Form("AnAn/pTbin_%d/phibin_%d/correctedMuonSpectrum", j, k)));
+        // project the 3D histogram into the (m, pT) plane for the current deltaPhi bin
+        hData3D->GetYaxis()->SetRange(k, k);
+        TH2D* hDataTofSlice = dynamic_cast<TH2D*>(hData3D->Project3D("zxe"));
+        hDataTofSlice->Write("hDataTofSlice");
 
-        TH1D* hDataRawNoTofSlice = hDataNoTof->ProjectionX(Form("hDataRawNoTofSlice_pTbin_%d_deltaPhiBin_%d", j, k), k, k);
-        TH1D* hTofFraction = getCoefficients(hDataTofSlice, hDataRawNoTofSlice);
-        hTofFraction->Write("hTofFraction");
+        // hMuon3D->GetYaxis()->SetRange(k, k);
+        // TH2D* hMuonTofSlice = dynamic_cast<TH2D*>(hMuon3D->Project3D("zxe"));
+        // hMuonTofSlice->Write("hMuonTofSlice");
 
-        TH1D* hDataCoefficients = getCoefficients(hDataNoTofSlice, hDataTofSlice);
-        TH1D* hMuonCoefficients = getCoefficients(hMuonNoTofSlice, hMuonTofSlice);
+        // clone the projection and correct the spectrum using the coefficients
+        TH1D* hDataTofCorrected = correctSpectra(hDataTofSlice, hDataCoefficients);
+        hDataTofCorrected->Write("hDataTofCorrected");
 
-        hDataCoefficients->Write("hDataCoefficients");
-        hMuonCoefficients->Write("hMuonCoefficients");
+        // TH1D* hMuonTofCorrected = correctSpectra(hMuonTofSlice, hMuonCoefficients);
+        // hMuonTofCorrected->Write("hMuonTofCorrected");
 
-        TH1D* hDataCorrected = correctSpectra(hDataTofSlice, hDataCoefficients);
-        TH1D* hMuonCorrected = correctSpectra(hMuonTofSlice, hMuonCoefficients);
+        TH1D* hAxE = dynamic_cast<TH1D*>(corrections->Get(Form("%s/pTbin_%d/phibin_%d/efficiency", neutronClasses[i].Data(), j, k)));
+        if (!hAxE) {
+          std::cerr << "ERROR: Cannot find AxE histogram for neutron class " << neutronClasses[i].Data() << ", pT bin " << j << ", deltaPhi bin " << k << std::endl;
+          continue;
+        }
+        hAxE->Write("hAxE");
 
-        hDataCorrected->Write("hCorrectedSpectrum");
-        hMuonCorrected->Write("hCorrectedMuonSpectrum");
+        TH1D* hDataTofFinal = applyAxE(hDataTofCorrected, hAxE);
+        hDataTofFinal->Write("correctedSpectrum");
+
+        // TH1D* hMuonTofFinal = applyAxE(hMuonTofCorrected, hAxE);
+        // hMuonTofFinal->Write("correctedMuonSpectrum");
       }
     }
   }
