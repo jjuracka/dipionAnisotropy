@@ -11,10 +11,10 @@ TH2D* getScalingCoefficients(TH2D* hNoTof, TH2D* hTof) {
     return nullptr;
   }
 
+  // divide the two histograms (assuming binomial statistics for error propagation)
   TH2D* hCoefficients = dynamic_cast<TH2D*>(hNoTof->Clone("hCoefficients"));
-  hCoefficients->SetTitle("TOF Scaling Coefficients; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); scaling coefficient");
-  hCoefficients->Divide(hTof);
-
+  hCoefficients->SetTitle("TOF scaling coefficients; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); scaling coefficient");
+  hCoefficients->Divide(hNoTof, hTof, 1, 1, "B"); // "B" option for binomial errors
   return hCoefficients;
 }
 
