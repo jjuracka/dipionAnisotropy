@@ -13,6 +13,7 @@ TH2D* getScalingCoefficients(TH2D* hNoTof, TH2D* hTof) {
 
   // divide the two histograms (assuming binomial statistics for error propagation)
   TH2D* hCoefficients = dynamic_cast<TH2D*>(hNoTof->Clone("hCoefficients"));
+  hCoefficients->Reset();
   hCoefficients->SetTitle("TOF scaling coefficients; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); scaling coefficient");
   hCoefficients->Divide(hNoTof, hTof, 1, 1, "B"); // "B" option for binomial errors
   return hCoefficients;
@@ -30,62 +31,24 @@ TH1D* correctSpectra(TH2D* hTof, TH2D* hCoefficients) {
   }
 
   TH2D* hCorrected = dynamic_cast<TH2D*>(hTof->Clone("hCorrected"));
+  hCorrected->Reset();
   hCorrected->SetTitle("TOF-corrected spectrum; #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); counts");
-  // hCorrected->Multiply(hCoefficients); // this does not work for 2D histograms, must be done manually with correct error propagation
-  for (int i = 1; i <= hTof->GetNbinsX(); ++i) {
-    for (int j = 1; j <= hTof->GetNbinsY(); ++j) {
-      double tofValue = hTof->GetBinContent(i, j);
-      double tofError = hTof->GetBinError(i, j);
-      double coeffValue = hCoefficients->GetBinContent(i, j);
-      double coeffError = hCoefficients->GetBinError(i, j);
-      if (coeffValue == 0) {
-        hCorrected->SetBinContent(i, j, 0);
-        hCorrected->SetBinError(i, j, 0);
-        continue;
-      }
-      hCorrected->SetBinContent(i, j, tofValue * coeffValue);
-      hCorrected->SetBinError(i, j, std::sqrt(std::pow(tofError * coeffValue, 2) + std::pow(tofValue * coeffError, 2)));
-    }
-  }
+  hCorrected->Multiply(hTof, hCoefficients, 1, 1);
 
   // project the corrected 2D histogram into a 1D histogram along the x-axis (m) for each pT bin
   TH1D* hCorrected1D = hCorrected->ProjectionX("hCorrected1D");
   hCorrected1D->SetTitle("TOF-corrected spectrum (1D projection); #it{m} (GeV/#it{c}^{2}); counts");
 
   return hCorrected1D;
-  delete hCorrected; // clean up the 2D histogram to avoid memory leaks
-  delete hCorrected1D; // clean up the 1D histogram to avoid memory leaks
 }
 
 TH1D* applyAxE(TH1D *hist, TH1D *eff) {
   TH1D *hDiv = (TH1D*)hist->Clone("hDiv");
-  // hDiv->Reset();
+  hDiv->Reset();
+  hDiv->Divide(hist, eff, 1, 1);
 
-  for (int bin = 1; bin <= hDiv->GetNbinsX(); ++bin) {
-    // get the AxE for the current bin
-    double AxE = eff->GetBinContent(bin);
-    if (AxE > 0) {
-      // get the bin content and error
-      double content = hist->GetBinContent(bin);
-      double sigmaContent = hist->GetBinError(bin);
-      // calculate the corrected content and error
-      double corrected = content / AxE;
-      double sigmaAxE = eff->GetBinError(bin);
-      double sigmaCorrected = TMath::Sqrt(
-        TMath::Power(sigmaContent / AxE, 2) +
-        TMath::Power(content * sigmaAxE / (AxE * AxE), 2)
-      );
-      // set the corrected content and error
-      hDiv->SetBinContent(bin, corrected);
-      hDiv->SetBinError(bin, sigmaCorrected);
-    } else { // if AxE is zero, set content and error to zero
-      hDiv->SetBinContent(bin, 0);
-      hDiv->SetBinError(bin, 0);
-    }
-  }
   // return the divided histogram
   return hDiv;
-  delete hDiv; // clean up the histogram to avoid memory leaks
 }
 
 void scaleTof() {
