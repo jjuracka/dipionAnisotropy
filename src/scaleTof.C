@@ -76,11 +76,6 @@ void scaleTof() {
       TH2D* hDataNoTof = dynamic_cast<TH2D*>(data->Get(Form("AnAn/unlike/pTbin_%d/hPtVsM", j)));
       TH2D* hDataCoefficients = getScalingCoefficients(hDataNoTof, hDataTof);
       hDataCoefficients->Write("hDataCoefficients");
-      
-      // TH2D* hMuonTof = dynamic_cast<TH2D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hPtVsMwithTof", j)));
-      // TH2D* hMuonNoTof = dynamic_cast<TH2D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hPtVsM", j)));
-      // TH2D* hMuonCoefficients = getScalingCoefficients(hMuonNoTof, hMuonTof);
-      // hMuonCoefficients->Write("hMuonCoefficients");
 
       // load 3D histograms storing events in (m, deltaPhi, pT) space
       TH3D* hData3D = dynamic_cast<TH3D*>(data->Get(Form("%s/unlike/pTbin_%d/hDeltaPhiVsPtVsMwithTof", neutronClasses[i].Data(), j)));
@@ -88,13 +83,6 @@ void scaleTof() {
         std::cerr << "ERROR: Cannot find 3D histogram for neutron class " << neutronClasses[i].Data() << " and pT bin " << j << std::endl;
         continue;
       }
-
-      // same for muons
-      // TH3D* hMuon3D = dynamic_cast<TH3D*>(muons->Get(Form("AnAn/unlike/pTbin_%d/hDeltaPhiVsPtVsMwithTof", j)));
-      // if (!hMuon3D) {
-      //   std::cerr << "ERROR: Cannot find 3D histogram for muons and pT bin " << j << std::endl;
-      //   continue;
-      // }
 
       for (int k = 1; k <= nBinsDeltaPhi; ++k) {
         TDirectory* phiDir = pTDir->mkdir(Form("phibin_%d", k));
@@ -105,16 +93,9 @@ void scaleTof() {
         TH2D* hDataTofSlice = dynamic_cast<TH2D*>(hData3D->Project3D("zxe"));
         hDataTofSlice->Write("hDataTofSlice");
 
-        // hMuon3D->GetYaxis()->SetRange(k, k);
-        // TH2D* hMuonTofSlice = dynamic_cast<TH2D*>(hMuon3D->Project3D("zxe"));
-        // hMuonTofSlice->Write("hMuonTofSlice");
-
         // clone the projection and correct the spectrum using the coefficients
         TH1D* hDataTofCorrected = correctSpectra(hDataTofSlice, hDataCoefficients);
         hDataTofCorrected->Write("hDataTofCorrected");
-
-        // TH1D* hMuonTofCorrected = correctSpectra(hMuonTofSlice, hMuonCoefficients);
-        // hMuonTofCorrected->Write("hMuonTofCorrected");
 
         TH1D* hAxE = dynamic_cast<TH1D*>(corrections->Get(Form("%s/pTbin_%d/phibin_%d/efficiency", neutronClasses[i].Data(), j, k)));
         if (!hAxE) {
@@ -125,9 +106,6 @@ void scaleTof() {
 
         TH1D* hDataTofFinal = applyAxE(hDataTofCorrected, hAxE);
         hDataTofFinal->Write("correctedSpectrum");
-
-        // TH1D* hMuonTofFinal = applyAxE(hMuonTofCorrected, hAxE);
-        // hMuonTofFinal->Write("correctedMuonSpectrum");
       }
     }
   }
