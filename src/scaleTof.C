@@ -42,6 +42,22 @@ TH1D* correctSpectra(TH2D* hTof, TH2D* hCoefficients) {
   return hCorrected1D;
 }
 
+void regulariseHistogram(TH2D* hist, double threshold) {
+  if (!hist) {
+    std::cerr << "ERROR: Histogram is null!" << std::endl;
+    return;
+  }
+
+  for (int i = 1; i <= hist->GetNbinsX(); ++i) {
+    for (int j = 1; j <= hist->GetNbinsY(); ++j) {
+      if (hist->GetBinContent(i, j) < threshold) {
+        hist->SetBinContent(i, j, 0);
+        hist->SetBinError(i, j, 0);
+      }
+    }
+  }
+}
+
 TH1D* applyAxE(TH1D *hist, TH1D *eff) {
   TH1D *hDiv = (TH1D*)hist->Clone("hDiv");
   hDiv->Reset();
@@ -89,8 +105,9 @@ void scaleTof() {
         phiDir->cd();
 
         // project the 3D histogram into the (m, pT) plane for the current deltaPhi bin
-        hData3D->GetYaxis()->SetRange(k, k);
-        TH2D* hDataTofSlice = dynamic_cast<TH2D*>(hData3D->Project3D("zxe"));
+        hData3D->GetZaxis()->SetRange(k, k);
+        TH2D* hDataTofSlice = dynamic_cast<TH2D*>(hData3D->Project3D("yxe"));
+        regulariseHistogram(hDataTofSlice, 25.0); // regularise the histogram to avoid low-statistics bins
         hDataTofSlice->Write("hDataTofSlice");
 
         // clone the projection and correct the spectrum using the coefficients
