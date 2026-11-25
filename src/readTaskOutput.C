@@ -42,7 +42,7 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
   const auto chargeFilters = getChargeFilters(isMC);
 
   // vectors for histo initialisation
-  std::vector<ROOT::RDF::RResultPtr<TH1D>> vecM, vecPt, vecY, vecDeltaPhi;
+  std::vector<ROOT::RDF::RResultPtr<TH1D>> vecM, vecPt, vecY, vecDeltaPhi, vecMwithTof;
   std::vector<ROOT::RDF::RResultPtr<TH1D>> vecTotalFT0AmplitudeA, vecTotalFT0AmplitudeC, vecTotalFV0AmplitudeA, vecTotalFDDAmplitudeA, vecTotalFDDAmplitudeC, vecTimeFT0A, vecTimeFT0C, vecTimeFV0A, vecTimeFDDA, vecTimeFDDC;
   std::vector<ROOT::RDF::RResultPtr<TH2D>> vecDeltaPhiVsM, vecPtVsM, vecDeltaPhiVsPt, vecDeltaPhiVsPtWide, vecDeltaPhiVsMwithTof, vecPtVsMwithTof;
   std::vector<ROOT::RDF::RResultPtr<TH3D>> vecDeltaPhiVsPtVsM, vecDeltaPhiVsPtVsMwithTof;
@@ -124,8 +124,11 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
         auto hPtVsMwithTof = eventsFilteredPtCutsWithTof.Histo2D<double, double>({"hPtVsMwithTof", Form("hPtVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass, 5, 0.0, 0.1}, "mass", "pT");
         vecPtVsMwithTof.push_back(hPtVsMwithTof);
 
-        auto hDeltaPhiVsPtVsMwithTof = eventsFilteredPtCutsWithTof.Histo3D<double, double, double>({"hDeltaPhiVsPtVsMwithTof", Form("hDeltaPhiVsPtVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); %s (rad); #it{p}_{T} (GeV/#it{c});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi(), 5, 0.0, 0.1}, "mass", "deltaPhi", "pT");
+        auto hDeltaPhiVsPtVsMwithTof = eventsFilteredPtCutsWithTof.Histo3D<double, double, double>({"hDeltaPhiVsPtVsMwithTof", Form("hDeltaPhiVsPtVsMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); %s (rad); counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, 5, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "pT", "deltaPhi");
         vecDeltaPhiVsPtVsMwithTof.push_back(hDeltaPhiVsPtVsMwithTof);
+
+        auto hMwithTof = eventsFilteredPtCutsWithTof.Histo1D<double>({"hMwithTof", Form("hMwithTof for %s %s-signed events for #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2});counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i), nBinsMass, minMass, maxMass}, "mass");
+        vecMwithTof.push_back(hMwithTof);
 
         // takes care of naming convention + directory creation
         hNames.emplace_back(neutronFilter.name, chargeFilter.name, i);
@@ -162,6 +165,7 @@ void processRecoTree(TString path, TString tree, TString outFileName, bool isMC 
     vecDeltaPhiVsMwithTof[i]->Write("hDeltaPhiVsMwithTof");
     vecPtVsMwithTof[i]->Write("hPtVsMwithTof");
     vecDeltaPhiVsPtVsMwithTof[i]->Write("hDeltaPhiVsPtVsMwithTof");
+    vecMwithTof[i]->Write("hMwithTof");
     vecTotalFT0AmplitudeA[i]->Write("hTotalFT0AmplitudeA");
     vecTotalFT0AmplitudeC[i]->Write("hTotalFT0AmplitudeC");
     vecTotalFV0AmplitudeA[i]->Write("hTotalFV0AmplitudeA");
@@ -197,6 +201,7 @@ void processGenTree(TString path, TString tree, TString outFileName) {
 
   std::vector<ROOT::RDF::RResultPtr<TH1D>> vecM, vecPt, vecY, vecDeltaPhi;
   std::vector<ROOT::RDF::RResultPtr<TH2D>> vecDeltaPhiVsM, vecPtVsM, vecDeltaPhiVsPt, vecDeltaPhiVsPtWide;
+  std::vector<ROOT::RDF::RResultPtr<TH3D>> vecDeltaPhiVsPtVsM;
   std::vector<std::tuple<std::string, std::string, int>> hNames;
 
   for (const auto& neutronFilter : neutronFilters) {
@@ -230,6 +235,9 @@ void processGenTree(TString path, TString tree, TString outFileName) {
         auto hDeltaPhiVsPtWide = events.Histo2D<double, double>({"hDeltaPhiVsPtWide", Form("hDeltaPhiVsPtWide for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{p}_{T} (GeV/#it{c}); %s (rad);counts", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), 1000, 0.0, 1.0, 120, -TMath::Pi(), TMath::Pi()}, "pT", "deltaPhi");
         vecDeltaPhiVsPtWide.push_back(hDeltaPhiVsPtWide);
 
+        auto hDeltaPhiVsPtVsM = eventsFilteredPtCuts.Histo3D<double, double, double>({"hDeltaPhiVsPtVsM", Form("hDeltaPhiVsPtVsM for %s %s-signed events in #it{p}_{T} #in (%.2f, %.2f) GeV/#it{c} (bin %d); #it{m} (GeV/#it{c}^{2}); #it{p}_{T} (GeV/#it{c}); %s (rad)", neutronFilter.name.c_str(), chargeFilter.name.c_str(), minPt, maxPt, i, deltaPhiLabel.c_str()), nBinsMass, minMass, maxMass, 5, 0.0, 0.1, nBinsDeltaPhi, -TMath::Pi(), TMath::Pi()}, "mass", "pT", "deltaPhi");
+        vecDeltaPhiVsPtVsM.push_back(hDeltaPhiVsPtVsM);
+
         hNames.emplace_back(neutronFilter.name, chargeFilter.name, i);
       }
     }
@@ -258,6 +266,7 @@ void processGenTree(TString path, TString tree, TString outFileName) {
     vecPtVsM[i]->Write();
     vecDeltaPhiVsPt[i]->Write();
     vecDeltaPhiVsPtWide[i]->Write();
+    vecDeltaPhiVsPtVsM[i]->Write();
   }
 
   outFile->Close();
