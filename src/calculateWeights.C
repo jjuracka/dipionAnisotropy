@@ -32,7 +32,7 @@ void calculateWeights() {
     }
     
     for (int yBin = 1; yBin <= hWeights->GetNbinsY(); yBin++) {
-      // take a projection of the 2D histos to properly calculate the weights per DeltaPhi bin
+      // take a single-bin projection of the 2D histos to properly calculate the weights per DeltaPhi bin
       TH1D *hUpcProj = hUpc->ProjectionX(Form("hUpcProj_R%.2f", r), yBin, yBin);
       TH1D *hStarLightProj = hStarLight->ProjectionX(Form("hStarLightProj_R%.2f", r), yBin, yBin);
       // scaling by the integral of the primary diffractive peak (pT < 0.1 GeV/c)
